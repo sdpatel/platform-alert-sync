@@ -1,0 +1,95 @@
+spring:
+  application:
+    name: "alert-sync"
+  jmx:
+    enabled: false
+  main:
+    banner-mode: 'off'
+
+  jackson:
+    serialization:
+      indent-output: true
+
+management:
+  endpoints:
+    enabled-by-default: true
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+  file:
+    name: alert-sync.log
+
+---
+spring:
+  profiles: dev, default
+
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:jtds:sybase://franconi.highwire.org:1025/alertdev
+    username: journalmaint
+    password: r00frat
+    driver-class-name: net.sourceforge.jtds.jdbc.Driver
+    initialize: true
+    hikari:
+      connection-test-query: "select 1"
+  jpa:
+    database-platform: org.hibernate.dialect.SybaseDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+  kafka:
+    producer:
+      bootstrap-servers: fr-kafka-app-dev-01.highwire.org:9092,fr-kafka-app-dev-02.highwire.org:9092,fr-kafka-app-dev-03.highwire.org:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      alert.sync.topic: alerts.legacy.sync
+
+---
+
+spring:
+  profiles: prod
+
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:jtds:sybase://freakshow.highwire.org:1045/alert
+    username: journalmaint
+    password: r00frat
+    driver-class-name: net.sourceforge.jtds.jdbc.Driver
+    initialize: true
+    hikari:
+      connection-test-query: "select 1"
+  jpa:
+    database-platform: org.hibernate.dialect.SybaseDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+    kafka:
+      producer:
+        bootstrap-servers: fr-kafka-app-prod-01.highwire.org:9092,fr-kafka-app-prod-02.highwire.org:9092,fr-kafka-app-prod-03.highwire.org:9092
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        alert.sync.topic: alerts.legacy.sync
+
+#    consumer:
+#      bootstrap-servers: fr-kafka-app-dev-01.highwire.org:9092,fr-kafka-app-dev-02.highwire.org:9092,fr-kafka-app-dev-03.highwire.org:9092
+#      auto-offset-reset: earliest
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+
+#    initialize: true
+#    validation-query: "select 1"
+#com.zaxxer.hikari.HikariDataSource
+#javax.sql.DataSource
+#driver-class-name: net.sourceforge.jtds.jdbc.Driver
+#driverClassName: com.sybase.jdbc4.jdbc.SybDriver
+#driverClassName: com.sybase.jdbc3.jdbc.SybDriver
