@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Strings;
 import lombok.Data;
 
+
 @Data
 @JsonSerialize
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -32,7 +33,7 @@ public class AlertMessage {
         this.frequency = "yearly";
       }
     } else {
-      this.frequency = "";
+      this.frequency = null;
     }
     this.scope = alertSyncView.getScope();
     this.context = alertSyncView.getContext();

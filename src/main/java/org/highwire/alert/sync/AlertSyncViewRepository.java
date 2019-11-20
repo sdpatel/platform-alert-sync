@@ -13,4 +13,6 @@ public interface AlertSyncViewRepository extends JpaRepository<AlertSyncView, In
 
   @Override List<AlertSyncView> findAll();
 
+  AlertSyncView findFirstById(int id);
+
 }

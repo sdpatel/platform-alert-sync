@@ -2,6 +2,7 @@ package org.highwire.alert.sync.controller;
 
 import org.highwire.alert.sync.AlertSyncPoller;
 
+import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +20,7 @@ import javax.annotation.Resource;
 
 @Slf4j
 @Controller
-@RequestMapping
+@RequestMapping("/poller")
 public class PollerController {
 
   @Autowired
@@ -28,17 +29,28 @@ public class PollerController {
   @Resource
   private AlertSyncPoller poller;
 
-  @RequestMapping(value = "/poller/start", method = RequestMethod.GET)
-  public String start(final RedirectAttributes redirectAttributes) {
-
-    log.debug("startPoller() : {}");
-
-    poller.enablePolling();
-
-    redirectAttributes.addFlashAttribute("css", "success");
-    redirectAttributes.addFlashAttribute("msg", "Poller is Started.");
-
-    return "redirect:/poller/mgmt";
+  @RequestMapping(value = "/start", method = RequestMethod.GET, produces = {
+      "application/json"})
+  public @ResponseBody ResponseEntity<String> start(final RedirectAttributes redirectAttributes) {
+    JsonObject resp = new JsonObject();
+    HttpStatus respStatus = HttpStatus.OK;
+    log.info("startPoller called ");
+    HttpHeaders headers = new HttpHeaders();
+    headers.setCacheControl("no-cache");
+    try {
+      poller.enablePolling();
+      resp.addProperty("poller-status", poller.isPollingEnabled());
+      resp.addProperty("status", HttpStatus.OK.value());
+    } catch (Exception e) {
+      log.error(" Error Enabling Poller :: " + e.getMessage());
+      respStatus = HttpStatus.BAD_REQUEST;
+      resp.addProperty("status", HttpStatus.BAD_REQUEST.value());
+      resp.addProperty("error", " Error Enabling Poller :: " + e.getMessage());
+    }
+    return new ResponseEntity<String>(resp.toString(), headers, respStatus);
+//    redirectAttributes.addFlashAttribute("css", "success");
+//    redirectAttributes.addFlashAttribute("msg", "Poller is Started.");
+//    return resp.toString();
 
   }
 
@@ -47,34 +59,49 @@ public class PollerController {
    *
    * @return .
    */
-  @RequestMapping(value = "/poller/stop", method = RequestMethod.GET)
-  @ResponseBody
-  public ResponseEntity<String> stopPoller() {
-    log.debug("stopPoller() : {}");
+  @RequestMapping(value = "/stop", method = RequestMethod.GET, produces = "application/json")
+  public @ResponseBody ResponseEntity<String> stopPoller() {
+    JsonObject resp = new JsonObject();
+    HttpStatus respStatus = HttpStatus.OK;
+    log.info("stopPoller() called ");
+    HttpHeaders headers = new HttpHeaders();
+    headers.setCacheControl("no-cache");
     try {
       poller.disablePolling();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setCacheControl("no-cache");
-      return new ResponseEntity<String>("SUCCESS", headers, HttpStatus.OK);
+      resp.addProperty("status", HttpStatus.OK.value());
     } catch (Exception e) {
-      log.error("Validation Error :: " + e.getMessage());
-      return new ResponseEntity<String>("FAILURE", HttpStatus.BAD_REQUEST);
+      log.error(" Error Disabling Poller :: " + e.getMessage());
+      respStatus = HttpStatus.BAD_REQUEST;
+      resp.addProperty("status", HttpStatus.BAD_REQUEST.value());
+      resp.addProperty("error", " Error Disabling Poller :: " + e.getMessage());
     }
+    String status = poller.isPollingEnabled() ? "Running" : "Stopped";
+    resp.addProperty("poller-status", status);
+    return new ResponseEntity<String>(resp.toString(), headers, respStatus);
   }
 
-  @RequestMapping(value = "/poller/mgmt", method = RequestMethod.GET)
-  public String showPollerManagement(Model model) {
+  @RequestMapping(value = "/status", method = RequestMethod.GET, produces = "application/json")
+  public @ResponseBody ResponseEntity<String> showPollerStatus() {
+    JsonObject resp = new JsonObject();
+    HttpStatus respStatus = HttpStatus.OK;
+    String status = "Failed";
 
-    log.debug("showPollerManagement");
-    String status = poller.isPollingEnabled() ? "Running" : "Stopped";
-
-    model.addAttribute("status", status);
-
-    return "poller/mgmt";
+    log.info("Show Poller Status ");
+    try {
+      status = poller.isPollingEnabled() ? "Running" : "Stopped";
+      resp.addProperty("poller-status", status);
+      resp.addProperty("status", HttpStatus.OK.value());
+    } catch (Exception e) {
+      log.error(" Error Disabling Poller :: " + e.getMessage());
+      respStatus = HttpStatus.BAD_REQUEST;
+      resp.addProperty("status", HttpStatus.BAD_REQUEST.value());
+      resp.addProperty("error", " Error Checking Poller Status :: " + e.getMessage());
+    }
+    return new ResponseEntity<String>(resp.toString(), respStatus);
   }
 
   @RequestMapping(value = "/", method = RequestMethod.GET)
-  public String listAllPolicy(Model model) {
-    return "redirect:/poller/mgmt";
+  public String defaultToStatus(Model model) {
+    return "redirect:/poller/status";
   }
 }

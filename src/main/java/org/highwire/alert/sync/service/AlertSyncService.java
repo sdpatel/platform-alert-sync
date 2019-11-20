@@ -2,6 +2,7 @@ package org.highwire.alert.sync.service;
 
 import org.highwire.alert.sync.AlertSyncRepository;
 import org.highwire.alert.sync.AlertSyncViewRepository;
+import org.highwire.alert.sync.domain.AlertSync;
 import org.highwire.alert.sync.domain.AlertSyncView;
 import org.highwire.alert.sync.domain.AlertSyncMessage;
 
@@ -58,14 +59,16 @@ public class AlertSyncService {
 
     // get alertsync entries from legacy alert DB
     alertSyncViewList = findAll();
-    log.info(" Number of AlertSync entries found:  " + alertSyncViewList.size());
-    // remove alert entries without context
+    log.info(" Number of AlertSyncView entries found:  " + alertSyncViewList.size());
+    // filter/remove alert entries without context
     for (AlertSyncView alert : alertSyncViewList) {
-      if (Strings.isNullOrEmpty(alert.getContext())) {
+      if (!alert.isQualifiedToSync()) {
         alertSyncViewList.remove(alert);
+        this.deleteAlertSyncById(alert.getId());
       }
     }
-    log.info(" Number of AlertSync entries to be synced:  " + alertSyncViewList.size());
+
+    log.info(" Number of qualified AlertSyncView entries to be synced:  " + alertSyncViewList.size());
 
     if (alertSyncViewList == null || alertSyncViewList.isEmpty()) {
       log.info("No Alerts to be synced at this time.");
@@ -97,7 +100,7 @@ public class AlertSyncService {
         msgSent = false;
       }
     }
-    log.info(" Number of alertSync reconds found: " + alertSyncViewList.size() +
+    log.info(" Number of qualified alertSyncView entries found: " + alertSyncViewList.size() +
                  " Number of legacy.alerts.sync topic msgs produced: " + counter);
     return counter;
   }
@@ -105,6 +108,33 @@ public class AlertSyncService {
   @Transactional
   public void deleteAlertSyncById(int id) {
     this.alertSyncRepo.deleteAllByFieldAlertId(id);
+  }
+
+  @Transactional
+  public int cleanupUnqualifiedAlertSyncEntries() {
+    List<AlertSync> alertSyncList = new ArrayList<>();
+    int countRemoved = 0;
+    // get list of unqualified alertSync entries
+    alertSyncList = this.alertSyncRepo.findAll();
+    log.info(
+        " cleanupUnqualifiedAlertSyncEntries: Number of AlertSync entries found: "
+            + alertSyncList.size());
+    // filter/remove alert entries without context
+    for (AlertSync alert : alertSyncList) {
+      try {
+        AlertSyncView asView = this.alertSyncViewRepo.findFirstById(alert.getId());
+        if (asView == null || (!asView.isQualifiedToSync())) {
+          this.deleteAlertSyncById(alert.getId());
+          countRemoved++;
+        }
+      } catch (Exception e) {
+        log.warn(" Failed to delete alertsync record " + alert.getId() + " " + e.getMessage());
+      }
+    }
+    log.info(String.format(
+        "cleanupUnqualifiedAlertSyncEntries: Number of AlertSync entries removed: %d",
+        countRemoved));
+    return countRemoved;
   }
 
 

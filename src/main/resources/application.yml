@@ -25,10 +25,22 @@ logging:
     root: INFO
   file:
     name: alert-sync.log
+    path: ../logs/alert-sync/alert-sync.log
+    max-history: 7
+  pattern:
+    rolling-file-name: ../logs/alert-sync.%d{yyyy-MM-dd}.%i.gz
 
 ---
 spring:
-  profiles: dev, default
+  profiles: dev
+  poller:
+    schedule:
+      fixed:
+        delay:
+          milliseconds: 60000
+      cleanup:
+        delay:
+          milliseconds: 3600000
 
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
@@ -53,17 +65,24 @@ spring:
       alert.sync.topic: alerts.legacy.sync
 
 ---
-
 spring:
-  profiles: prod
+  profiles: prod, default
+  poller:
+    schedule:
+      fixed:
+        delay:
+          milliseconds: 60000
+      cleanup:
+        delay:
+          milliseconds: 3600000
 
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:jtds:sybase://freakshow.highwire.org:1045/alert
+    url: jdbc:jtds:sybase://menagerie.highwire.org:1025/alert
     username: journalmaint
     password: r00frat
     driver-class-name: net.sourceforge.jtds.jdbc.Driver
-    initialize: true
+    initialize: false
     hikari:
       connection-test-query: "select 1"
   jpa:
@@ -72,12 +91,13 @@ spring:
     hibernate:
       ddl-auto: none
 
-    kafka:
-      producer:
-        bootstrap-servers: fr-kafka-app-prod-01.highwire.org:9092,fr-kafka-app-prod-02.highwire.org:9092,fr-kafka-app-prod-03.highwire.org:9092
-        key-serializer: org.apache.kafka.common.serialization.StringSerializer
-        value-serializer: org.apache.kafka.common.serialization.StringSerializer
-        alert.sync.topic: alerts.legacy.sync
+  kafka:
+    producer:
+      bootstrap-servers: fr-kafka-app-prod-01.highwire.org:9092,fr-kafka-app-prod-02.highwire.org:9092,fr-kafka-app-prod-03.highwire.org:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      alert.sync.topic: alerts.legacy.sync
+
 
 #    consumer:
 #      bootstrap-servers: fr-kafka-app-dev-01.highwire.org:9092,fr-kafka-app-dev-02.highwire.org:9092,fr-kafka-app-dev-03.highwire.org:9092

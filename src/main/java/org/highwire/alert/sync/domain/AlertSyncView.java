@@ -1,5 +1,7 @@
 package org.highwire.alert.sync.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.base.Strings;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -55,5 +57,14 @@ public class AlertSyncView implements Serializable {
 
   @UpdateTimestamp
   private Timestamp timestamp;
+
+  @JsonIgnore
+  public boolean isQualifiedToSync() {
+    if (Strings.isNullOrEmpty(this.getContext()) ||
+            Strings.isNullOrEmpty(this.getType())) {
+      return false;
+    }
+    return true;
+  }
 
 }
