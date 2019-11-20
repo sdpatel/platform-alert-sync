@@ -1,15 +1,16 @@
 package org.highwire.alert.sync;
 
+import org.highwire.alert.sync.domain.AlertSync;
 import org.highwire.alert.sync.service.AlertSyncService;
 
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -59,17 +60,35 @@ public class AlertSyncPoller {
       initialDelay = 20000)
   public synchronized void cleanupUnqualifiedAlertSyncEntries() throws Exception {
     log.info("Cleanup Unqualified Alert Sync Entries : ");
+    List<AlertSync> deletedAlertSyncList = new ArrayList<>();
     if (isPollingEnabled()) {
       this.disablePolling();
       // Cleanup Unqualified AlertSync Entries
       try {
-        alertSyncService.cleanupUnqualifiedAlertSyncEntries();
+        deletedAlertSyncList = alertSyncService.cleanupUnqualifiedAlertSyncEntries();
       } catch (Exception e) {
         log.error(" cleanupUnqualifiedAlertSyncEntries failed " + e.getMessage());
       } finally {
         this.enablePolling();
       }
     }
+  }
+
+  public synchronized List<AlertSync> cleanupUnqualifiedAlertSyncResources() throws Exception {
+    log.info("Cleanup Unqualified AlertSync Resources : ");
+    List<AlertSync> deletedAlertSyncList = new ArrayList<>();
+    if (isPollingEnabled()) {
+      this.disablePolling();
+      // Cleanup Unqualified AlertSync Entries
+      try {
+        deletedAlertSyncList = alertSyncService.cleanupUnqualifiedAlertSyncEntries();
+      } catch (Exception e) {
+        log.error(" cleanupUnqualifiedAlertSyncEntries failed " + e.getMessage());
+      } finally {
+        this.enablePolling();
+      }
+    }
+    return deletedAlertSyncList;
   }
 
 

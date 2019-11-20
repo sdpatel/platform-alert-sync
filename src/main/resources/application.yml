@@ -32,7 +32,7 @@ logging:
 
 ---
 spring:
-  profiles: dev
+  profiles: dev, default
   poller:
     schedule:
       fixed:
@@ -53,7 +53,7 @@ spring:
       connection-test-query: "select 1"
   jpa:
     database-platform: org.hibernate.dialect.SybaseDialect
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: none
 
@@ -66,7 +66,7 @@ spring:
 
 ---
 spring:
-  profiles: prod, default
+  profiles: prod
   poller:
     schedule:
       fixed:
@@ -87,7 +87,7 @@ spring:
       connection-test-query: "select 1"
   jpa:
     database-platform: org.hibernate.dialect.SybaseDialect
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: none
 

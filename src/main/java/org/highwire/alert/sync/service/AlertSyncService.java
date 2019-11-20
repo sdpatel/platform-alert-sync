@@ -56,15 +56,21 @@ public class AlertSyncService {
   @Transactional
   public int syncRecentAlerts() {
     List<AlertSyncView> alertSyncViewList = new ArrayList<>();
-
+    List<AlertSyncView> unqualifiedSyncViewList = new ArrayList<>();
     // get alertsync entries from legacy alert DB
     alertSyncViewList = findAll();
     log.info(" Number of AlertSyncView entries found:  " + alertSyncViewList.size());
+
     // filter/remove alert entries without context
     for (AlertSyncView alert : alertSyncViewList) {
       if (!alert.isQualifiedToSync()) {
-        alertSyncViewList.remove(alert);
+        unqualifiedSyncViewList.add(alert);
         this.deleteAlertSyncById(alert.getId());
+      }
+    }
+    for (AlertSyncView alert : unqualifiedSyncViewList) {
+      if (alertSyncViewList.contains(alert)) {
+        alertSyncViewList.remove(alert);
       }
     }
 
@@ -111,8 +117,9 @@ public class AlertSyncService {
   }
 
   @Transactional
-  public int cleanupUnqualifiedAlertSyncEntries() {
+  public List<AlertSync> cleanupUnqualifiedAlertSyncEntries() {
     List<AlertSync> alertSyncList = new ArrayList<>();
+    List<AlertSync> deletedAlertSyncList = new ArrayList<>();
     int countRemoved = 0;
     // get list of unqualified alertSync entries
     alertSyncList = this.alertSyncRepo.findAll();
@@ -125,6 +132,8 @@ public class AlertSyncService {
         AlertSyncView asView = this.alertSyncViewRepo.findFirstById(alert.getId());
         if (asView == null || (!asView.isQualifiedToSync())) {
           this.deleteAlertSyncById(alert.getId());
+          log.info(String.format(" Deleting alertSync Rec: %s", gson.toJson(alert)));
+          deletedAlertSyncList.add(alert);
           countRemoved++;
         }
       } catch (Exception e) {
@@ -134,7 +143,7 @@ public class AlertSyncService {
     log.info(String.format(
         "cleanupUnqualifiedAlertSyncEntries: Number of AlertSync entries removed: %d",
         countRemoved));
-    return countRemoved;
+    return deletedAlertSyncList;
   }
 
 

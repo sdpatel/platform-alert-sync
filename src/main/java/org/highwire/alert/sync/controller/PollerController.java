@@ -1,7 +1,10 @@
 package org.highwire.alert.sync.controller;
 
 import org.highwire.alert.sync.AlertSyncPoller;
+import org.highwire.alert.sync.domain.AlertSync;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.Resource;
 
 @Slf4j
@@ -28,6 +34,10 @@ public class PollerController {
 
   @Resource
   private AlertSyncPoller poller;
+
+  private Gson gson = new GsonBuilder()
+                          .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS a")
+                          .create();
 
   @RequestMapping(value = "/start", method = RequestMethod.GET, produces = {
       "application/json"})
@@ -97,6 +107,34 @@ public class PollerController {
       resp.addProperty("status", HttpStatus.BAD_REQUEST.value());
       resp.addProperty("error", " Error Checking Poller Status :: " + e.getMessage());
     }
+
+    return new ResponseEntity<String>(resp.toString(), respStatus);
+  }
+
+
+  @RequestMapping(value = "/cleanup", method = RequestMethod.GET, produces = "application" +
+                                                                                    "/json")
+  public @ResponseBody ResponseEntity<String> cleanupAlertSync() {
+    JsonObject resp = new JsonObject();
+    List<AlertSync> deletedAlertSyncList = new ArrayList<>();
+    HttpStatus respStatus = HttpStatus.OK;
+    log.info("cleanup Unqualified AlertSync Resources");
+    try {
+      deletedAlertSyncList = poller.cleanupUnqualifiedAlertSyncResources();
+      if (deletedAlertSyncList.size() > 0) {
+        resp.add("deletedAlertSync", gson.toJsonTree(deletedAlertSyncList));
+      }
+      resp.addProperty("countsDeleted", deletedAlertSyncList.size());
+      resp.addProperty("status", HttpStatus.OK.value());
+    } catch (Exception e) {
+      log.error(" Error on cleanupUnqualifiedAlertSyncResources :: " + e.getMessage());
+      respStatus = HttpStatus.BAD_REQUEST;
+      resp.addProperty("status", HttpStatus.BAD_REQUEST.value());
+      resp.addProperty("error", " Error on cleanupUnqualifiedAlertSyncResources :: " +
+                                    e.getMessage());
+    }
+    String status = poller.isPollingEnabled() ? "Running" : "Stopped";
+    resp.addProperty("poller-status", status);
     return new ResponseEntity<String>(resp.toString(), respStatus);
   }
 
